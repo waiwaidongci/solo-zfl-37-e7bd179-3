@@ -435,7 +435,9 @@ function getActor(req) {
 }
 
 function rememberIdempotency(key, status, body) {
-  db.idempotency[key] = { at: now(), status, body };
+  // 深拷贝快照：重放必须返回与首次执行同一版本的结果，
+  // 否则 body 里的 timeline / notes 是活引用，会被后续操作污染
+  db.idempotency[key] = { at: now(), status, body: JSON.parse(JSON.stringify(body)) };
   const keys = Object.keys(db.idempotency);
   if (keys.length > 500) {
     keys.sort((a, b) => (db.idempotency[a].at < db.idempotency[b].at ? -1 : 1));
@@ -525,8 +527,12 @@ const routes = {
   "POST /api/tasks/:id/groups": handleMutation(async (req, actor, url) => {
     const task = findTask(url.pathname.split("/")[3]);
     if (!task) throw httpError(404, "任务不存在", "not_found");
-    if (!["operator", "admin"].includes(actor.role)) throw httpError(403, `${ROLE_LABEL[actor.role]}无权新增试磨组`, "forbidden");
-    if (!GROUP_EDIT_STATES.includes(task.status)) throw httpError(409, `当前状态为「${task.status}」，不能新增试磨组`, "bad_state");
+    if (!["operator", "admin"].includes(actor.role)) {
+      reject(task, actor, "新增试磨组", `${ROLE_LABEL[actor.role]}无权新增试磨组`, 403);
+    }
+    if (!GROUP_EDIT_STATES.includes(task.status)) {
+      reject(task, actor, "新增试磨组", `当前状态为「${task.status}」，不能新增试磨组`, 409);
+    }
     const input = await readBody(req);
     const i = task.groups.length;
     const g = {
@@ -550,24 +556,41 @@ const routes = {
     if (!task) throw httpError(404, "任务不存在", "not_found");
     const g = task.groups.find((x) => x.id === parts[5]);
     if (!g) throw httpError(404, "试磨组不存在", "not_found");
-    if (!["operator", "admin"].includes(actor.role)) throw httpError(403, `${ROLE_LABEL[actor.role]}无权修改试磨记录`, "forbidden");
-    if (!GROUP_EDIT_STATES.includes(task.status)) throw httpError(409, `当前状态为「${task.status}」，试磨组已锁定`, "bad_state");
+    if (!["operator", "admin"].includes(actor.role)) {
+      reject(task, actor, "更新试磨记录", `${g.name}：${ROLE_LABEL[actor.role]}无权修改试磨记录`, 403);
+    }
+    if (!GROUP_EDIT_STATES.includes(task.status)) {
+      reject(task, actor, "更新试磨记录", `${g.name}：当前状态为「${task.status}」，试磨组已锁定`, 409);
+    }
     const input = await readBody(req);
+    // 先整体校验到暂存区，全部合法才一次性应用：
+    // 任一字段非法 → 整单拒绝，内存与磁盘都不留部分修改，时间线记录这次拒绝
+    const staged = {};
     const changed = [];
     for (const [k, label] of GROUP_FIELDS) {
-      if (k in input) { g[k] = coerceGroupField(k, input[k]); changed.push(label); }
+      if (k in input) {
+        try {
+          staged[k] = coerceGroupField(k, input[k]);
+        } catch (e) {
+          reject(task, actor, "更新试磨记录", `${g.name}：${e.message}`, 400);
+        }
+        changed.push(label);
+      }
     }
     if ("score" in input) {
       const v = input.score === "" || input.score == null ? null : Number(input.score);
-      if (v !== null && Number.isNaN(v)) throw httpError(400, "评分必须是数字", "bad_field");
-      g.score = v;
+      if (v !== null && Number.isNaN(v)) reject(task, actor, "更新试磨记录", `${g.name}：评分必须是数字`, 400);
+      staged.score = v;
       changed.push("评分");
     }
-    if (input.note && String(input.note).trim()) {
-      g.notes.push({ at: now(), by: actor.id, byName: actor.name, stage: task.status, text: String(input.note).trim().slice(0, 500) });
+    const noteText = input.note && String(input.note).trim() ? String(input.note).trim().slice(0, 500) : "";
+    if (!changed.length && !noteText) reject(task, actor, "更新试磨记录", `${g.name}：没有需要保存的修改`, 400);
+    // 校验全部通过，一次性应用
+    Object.assign(g, staged);
+    if (noteText) {
+      g.notes.push({ at: now(), by: actor.id, byName: actor.name, stage: task.status, text: noteText });
       changed.push("阶段意见");
     }
-    if (!changed.length) throw httpError(400, "没有需要保存的修改", "bad_field");
     g.updatedAt = now();
     task.updatedAt = now();
     logEvent(task, actor, "更新试磨记录", `${g.name}：${changed.join("、")}`);

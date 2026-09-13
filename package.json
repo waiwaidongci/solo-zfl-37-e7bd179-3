@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "verify": "node verify.mjs"
+    "verify": "node verify.mjs",
+    "verify:ui": "node ui-verify.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }

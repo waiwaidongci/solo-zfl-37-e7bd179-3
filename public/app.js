@@ -29,6 +29,8 @@ const state = {
   filters: { status: "", q: "", overdue: false, mine: false },
   pending: false,
 };
+// 试磨组表单里已填未保存的内容（组 id 集合），重绘抽屉前必须先保存或被明确阻止
+const dirtyGroups = new Set();
 
 /* ---------- 基础 ---------- */
 const $ = (sel) => document.querySelector(sel);
@@ -198,6 +200,7 @@ function renderTasks() {
 async function openTask(id) {
   try {
     state.detail = await api(`/api/tasks/${encodeURIComponent(id)}`);
+    dirtyGroups.clear();
     renderDrawer();
   } catch (e) {
     toast(e.message, "err");
@@ -205,8 +208,30 @@ async function openTask(id) {
 }
 function closeDrawer() {
   state.detail = null;
+  dirtyGroups.clear();
   $("#drawer").classList.add("hidden");
   $("#drawerMask").classList.add("hidden");
+}
+
+// 有未保存修改时在操作前明确阻止（exceptGid：正在被保存/提交的本组除外）
+function guardUnsaved(exceptGid = null) {
+  if (!state.detail) return false;
+  const dirty = [...dirtyGroups].filter((id) => id !== exceptGid);
+  if (!dirty.length) return false;
+  const names = dirty.map((id) => {
+    const g = state.detail.groups.find((x) => x.id === id);
+    return g ? g.name : id;
+  });
+  toast(`「${names.join("、")}」有未保存的修改，请先「保存本组记录」，再执行此操作`, "err");
+  return true;
+}
+
+// 收集某组表单当前值（含用户已填未存的内容）
+function groupFormValues(gid) {
+  const form = $("#drawer").querySelector(`[data-gform="${gid}"]`);
+  const body = {};
+  if (form) form.querySelectorAll("input").forEach((inp) => { body[inp.name] = inp.value; });
+  return body;
 }
 
 function groupReadonlyRow(g) {
@@ -318,28 +343,41 @@ function renderDrawer() {
   $("#drawerMask").classList.remove("hidden");
 
   drawer.querySelector("[data-close]").onclick = closeDrawer;
-  drawer.querySelectorAll("[data-action]").forEach((el) => (el.onclick = () => openActionModal(t, el.dataset.action)));
+  // 跟踪表单改动：任一输入改变即标记本组为「有未保存修改」
+  drawer.querySelectorAll("[data-gform]").forEach((form) => {
+    form.addEventListener("input", () => dirtyGroups.add(form.dataset.gform));
+  });
+  drawer.querySelectorAll("[data-action]").forEach((el) => {
+    el.onclick = () => { if (!guardUnsaved()) openActionModal(t, el.dataset.action); };
+  });
   const addGroup = drawer.querySelector("[data-add-group]");
-  if (addGroup) addGroup.onclick = () => mutate(async () => api(`/api/tasks/${t.id}/groups`, { method: "POST", body: {} }), "已新增试磨组");
+  if (addGroup) {
+    addGroup.onclick = () => {
+      if (guardUnsaved()) return;
+      mutate(async () => api(`/api/tasks/${t.id}/groups`, { method: "POST", body: {} }), "已新增试磨组");
+    };
+  }
   drawer.querySelectorAll("[data-save-group]").forEach((el) => {
     el.onclick = () => {
-      const form = drawer.querySelector(`[data-gform="${el.dataset.saveGroup}"]`);
-      const body = {};
-      form.querySelectorAll("input").forEach((inp) => { body[inp.name] = inp.value; });
-      mutate(async () => api(`/api/tasks/${t.id}/groups/${el.dataset.saveGroup}`, { method: "PATCH", body }), "试磨记录已保存");
+      const gid = el.dataset.saveGroup;
+      if (guardUnsaved(gid)) return; // 其他组还有未保存修改时先阻止
+      mutate(async () => api(`/api/tasks/${t.id}/groups/${gid}`, { method: "PATCH", body: groupFormValues(gid) }), "试磨记录已保存");
     };
   });
   drawer.querySelectorAll("[data-add-note]").forEach((el) => {
     el.onclick = () => {
-      const input = drawer.querySelector(`[data-note-input="${el.dataset.addNote}"]`);
+      const gid = el.dataset.addNote;
+      if (guardUnsaved(gid)) return; // 其他组还有未保存修改时先阻止
+      const input = drawer.querySelector(`[data-note-input="${gid}"]`);
       const note = input.value.trim();
       if (!note) return toast("请先填写阶段意见", "err");
-      mutate(async () => api(`/api/tasks/${t.id}/groups/${el.dataset.addNote}`, { method: "PATCH", body: { note } }), "阶段意见已添加");
+      // 本组表单里已填未存的内容随阶段意见一起提交，已填内容不会丢失
+      mutate(async () => api(`/api/tasks/${t.id}/groups/${gid}`, { method: "PATCH", body: { ...groupFormValues(gid), note } }), "阶段意见已添加");
     };
   });
 }
 
-// 变更后刷新详情与列表；幂等重放会提示
+// 变更后刷新详情与列表；失败时不重绘抽屉，保住表单里已填内容
 async function mutate(fn, okMsg) {
   if (state.pending) return;
   state.pending = true;
@@ -348,14 +386,12 @@ async function mutate(fn, okMsg) {
     if (data.task) state.detail = data.task;
     if (data.idempotentReplay) toast("重复请求已被忽略（幂等）", "ok");
     else if (okMsg) toast(okMsg, "ok");
+    dirtyGroups.clear(); // 已保存的内容与服务端一致，清除脏标记后重绘
     renderDrawer();
     await loadAll();
   } catch (e) {
+    // 拒绝已写入服务端时间线（下次打开可见）；此处不重绘，避免清空用户已填内容
     toast(e.message, "err");
-    // 被拒后刷新详情，时间线里能看到被拒记录
-    if (state.detail) {
-      try { state.detail = await api(`/api/tasks/${state.detail.id}`); renderDrawer(); } catch { /* 忽略 */ }
-    }
   } finally {
     state.pending = false;
   }

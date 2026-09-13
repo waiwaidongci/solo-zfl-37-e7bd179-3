@@ -227,6 +227,62 @@ try {
     check("每条记录含操作人与时间", d.data.timeline.every((e) => e.actorName && e.at));
   }
 
+  console.log("\n■ 试磨组更新原子性：任一字段非法则整体失败");
+  {
+    const id = await makeQueuedTask("V-050");
+    await req("POST", `/api/tasks/${id}/transition`, { user: "op-li", body: { action: "start_grinding" } });
+    const d0 = await req("GET", `/api/tasks/${id}`);
+    const gid = d0.data.groups[0].id;
+    await req("PATCH", `/api/tasks/${id}/groups/${gid}`, { user: "op-li", body: { formula: "原始配方", paper: "净皮宣" } });
+    const notesBefore = (await req("GET", `/api/tasks/${id}`)).data.groups[0].notes.length;
+    // 混合请求：合法 formula + 非法 temperature → 必须整单失败
+    const bad = await req("PATCH", `/api/tasks/${id}/groups/${gid}`, { user: "op-li", body: { formula: "被篡改的配方", temperature: "abc" } });
+    check("非法字段使整单被拒绝(400)", bad.status === 400 && /温度/.test(bad.data.message));
+    const d1 = await req("GET", `/api/tasks/${id}`);
+    check("内存中无部分修改（合法字段也未生效）", d1.data.groups[0].formula === "原始配方" && d1.data.groups[0].temperature === null);
+    check("拒绝已写入时间线", d1.data.timeline.some((e) => e.action === "更新试磨记录" && e.result === "rejected" && /温度/.test(e.detail)));
+    // 非法 humidity + 阶段意见 → 意见也不得写入
+    const bad2 = await req("PATCH", `/api/tasks/${id}/groups/${gid}`, { user: "op-li", body: { humidity: "潮", note: "这条意见不应出现" } });
+    check("非法字段+阶段意见整单被拒绝(400)", bad2.status === 400);
+    const d2 = await req("GET", `/api/tasks/${id}`);
+    check("阶段意见未被部分写入", d2.data.groups[0].notes.length === notesBefore);
+    // 重启验证磁盘同样干净
+    await stopServer(server);
+    server = startServer();
+    await waitUp();
+    const d3 = await req("GET", `/api/tasks/${id}`);
+    check("重启后磁盘无部分修改", d3.data.groups[0].formula === "原始配方" && d3.data.groups[0].temperature === null);
+    check("重启后拒绝记录仍在时间线", d3.data.timeline.some((e) => e.action === "更新试磨记录" && e.result === "rejected"));
+  }
+
+  console.log("\n■ 幂等重放版本一致性（试磨组与时间线同一版本）");
+  {
+    // 场景一：创建接口重放
+    const key = "idem-ver-" + Date.now();
+    const c = await req("POST", "/api/tasks", { user: "op-li", body: { code: "V-060", smokeSource: "松烟" }, idem: key });
+    const id = c.data.task.id;
+    const tl0 = c.data.task.timeline.length;
+    const g0 = c.data.task.groups.length;
+    await req("POST", `/api/tasks/${id}/groups`, { user: "op-li", body: { sampleNo: "S-060-A" } });
+    await req("POST", `/api/tasks/${id}/transition`, { user: "op-li", body: { action: "sample_ready" } });
+    const replay = await req("POST", "/api/tasks", { user: "op-li", body: { code: "V-060" }, idem: key });
+    check("创建重放返回原始结果", replay.data.idempotentReplay === true && replay.data.task.id === id);
+    check("重放的试磨组与时间线均为首次执行时的版本", replay.data.task.groups.length === g0 && replay.data.task.timeline.length === tl0,
+      `groups ${replay.data.task.groups.length}/${g0}，timeline ${replay.data.task.timeline.length}/${tl0}`);
+    // 场景二：试磨组 PATCH 重放（notes 数组曾是活引用）
+    const key2 = "idem-patch-" + Date.now();
+    const g = await req("POST", `/api/tasks/${id}/groups`, { user: "op-li", body: {} });
+    const gid = g.data.group.id;
+    const p1 = await req("PATCH", `/api/tasks/${id}/groups/${gid}`, { user: "op-li", body: { formula: "配方甲" }, idem: key2 });
+    const notes0 = p1.data.task.groups.find((x) => x.id === gid).notes.length;
+    const tl1 = p1.data.task.timeline.length;
+    await req("PATCH", `/api/tasks/${id}/groups/${gid}`, { user: "op-li", body: { note: "后续意见" } });
+    const replay2 = await req("PATCH", `/api/tasks/${id}/groups/${gid}`, { user: "op-li", body: { formula: "配方甲" }, idem: key2 });
+    const rGroup = replay2.data.task.groups.find((x) => x.id === gid);
+    check("PATCH 重放的阶段意见与时间线均为当时版本", replay2.data.idempotentReplay === true && rGroup.notes.length === notes0 && replay2.data.task.timeline.length === tl1,
+      `notes ${rGroup.notes.length}/${notes0}，timeline ${replay2.data.task.timeline.length}/${tl1}`);
+  }
+
   console.log("\n■ 重启持久化");
   {
     const beforeCount = (await req("GET", "/api/tasks")).data.length;

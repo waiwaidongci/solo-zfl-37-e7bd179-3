@@ -1,47 +1,394 @@
 {
-  "items": [
+  "version": 2,
+  "users": [
     {
+      "id": "admin",
+      "name": "王守墨",
+      "role": "admin",
+      "title": "试磨室主任"
+    },
+    {
+      "id": "op-li",
+      "name": "李研",
+      "role": "operator",
+      "title": "试验员"
+    },
+    {
+      "id": "op-chen",
+      "name": "陈砚",
+      "role": "operator",
+      "title": "试验员"
+    },
+    {
+      "id": "rev-zhao",
+      "name": "赵鉴",
+      "role": "reviewer",
+      "title": "复评员"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T-0001",
       "code": "IS-001",
       "smokeSource": "黄山松烟",
       "glueRatio": "7.5%",
       "ageYears": 8,
       "storage": "恒湿柜B",
-      "status": "已试磨",
-      "logs": [
+      "status": "待配样",
+      "createdBy": "op-li",
+      "createdAt": "2026-09-12T05:10:42.321Z",
+      "updatedAt": "2026-09-13T05:10:42.321Z",
+      "dueDate": "2026-09-23",
+      "grinderId": null,
+      "reviewerId": null,
+      "archivedAt": null,
+      "cancelReason": null,
+      "groups": [],
+      "timeline": [
         {
-          "at": "2026-06-11",
-          "step": "试磨",
-          "note": "宣纸20滴水，出墨快，评分86",
-          "score": 86
+          "at": "2026-09-12T05:10:42.321Z",
+          "actorId": "op-li",
+          "actorName": "李研",
+          "role": "operator",
+          "action": "创建任务",
+          "from": null,
+          "to": "待配样",
+          "result": "ok",
+          "detail": "墨锭建档，等待配样"
         }
       ]
     },
     {
+      "id": "T-0002",
       "code": "IS-002",
       "smokeSource": "桐油烟",
       "glueRatio": "8%",
       "ageYears": 3,
       "storage": "试样盒C",
-      "status": "重点观察",
-      "logs": [
+      "status": "试磨中",
+      "createdBy": "op-li",
+      "createdAt": "2026-09-04T05:10:42.321Z",
+      "updatedAt": "2026-09-13T05:10:42.321Z",
+      "dueDate": "2026-09-11",
+      "grinderId": "op-li",
+      "reviewerId": null,
+      "archivedAt": null,
+      "cancelReason": null,
+      "groups": [
         {
-          "at": "2026-06-21T03:50:28.907Z",
-          "step": "试磨",
-          "note": "棉连纸，评分79",
-          "score": 79
+          "id": "G-1",
+          "name": "A组",
+          "formula": "",
+          "paper": "净皮宣",
+          "temperature": null,
+          "humidity": null,
+          "sampleNo": "S-002-A",
+          "score": null,
+          "notes": [
+            {
+              "at": "2026-09-11T05:10:42.321Z",
+              "by": "op-li",
+              "byName": "李研",
+              "stage": "试磨中",
+              "text": "下墨尚可，待补配方与温湿度记录"
+            }
+          ],
+          "createdAt": "2026-09-13T05:10:42.321Z",
+          "updatedAt": "2026-09-13T05:10:42.321Z"
+        },
+        {
+          "id": "G-2",
+          "name": "B组",
+          "formula": "",
+          "paper": "",
+          "temperature": null,
+          "humidity": null,
+          "sampleNo": "S-002-B",
+          "score": null,
+          "notes": [],
+          "createdAt": "2026-09-13T05:10:42.321Z",
+          "updatedAt": "2026-09-13T05:10:42.321Z"
         }
       ],
-      "tests": [
+      "timeline": [
         {
-          "at": "2026-06-21T03:50:28.907Z",
-          "paper": "棉连纸",
-          "water": "18滴",
-          "speed": "中",
-          "colorLayer": "偏暖",
-          "sediment": "少",
-          "score": 79
+          "at": "2026-09-04T05:10:42.321Z",
+          "actorId": "op-chen",
+          "actorName": "陈砚",
+          "role": "operator",
+          "action": "创建任务",
+          "from": null,
+          "to": "待配样",
+          "result": "ok",
+          "detail": "墨锭建档"
+        },
+        {
+          "at": "2026-09-06T05:10:42.321Z",
+          "actorId": "op-chen",
+          "actorName": "陈砚",
+          "role": "operator",
+          "action": "配样完成",
+          "from": "待配样",
+          "to": "排队试磨",
+          "result": "ok",
+          "detail": "配样完成，共 2 组试磨样本"
+        },
+        {
+          "at": "2026-09-08T05:10:42.321Z",
+          "actorId": "op-li",
+          "actorName": "李研",
+          "role": "operator",
+          "action": "开始试磨",
+          "from": "排队试磨",
+          "to": "试磨中",
+          "result": "ok",
+          "detail": "试磨人：李研"
+        }
+      ]
+    },
+    {
+      "id": "T-0003",
+      "code": "IS-003",
+      "smokeSource": "漆烟",
+      "glueRatio": "6.5%",
+      "ageYears": 5,
+      "storage": "恒湿柜A",
+      "status": "待复评",
+      "createdBy": "op-chen",
+      "createdAt": "2026-09-01T05:10:42.321Z",
+      "updatedAt": "2026-09-13T05:10:42.321Z",
+      "dueDate": "2026-09-15",
+      "grinderId": "op-chen",
+      "reviewerId": null,
+      "archivedAt": null,
+      "cancelReason": null,
+      "groups": [
+        {
+          "id": "G-3",
+          "name": "A组",
+          "formula": "漆烟+6.5%胶，减水慢研",
+          "paper": "净皮宣",
+          "temperature": 22,
+          "humidity": 55,
+          "sampleNo": "S-003-A",
+          "score": 88,
+          "notes": [
+            {
+              "at": "2026-09-10T05:10:42.321Z",
+              "by": "op-chen",
+              "byName": "陈砚",
+              "stage": "试磨中",
+              "text": "出墨快，墨色层次清楚，沉淀少"
+            }
+          ],
+          "createdAt": "2026-09-13T05:10:42.321Z",
+          "updatedAt": "2026-09-13T05:10:42.321Z"
+        }
+      ],
+      "timeline": [
+        {
+          "at": "2026-09-01T05:10:42.321Z",
+          "actorId": "op-chen",
+          "actorName": "陈砚",
+          "role": "operator",
+          "action": "创建任务",
+          "from": null,
+          "to": "待配样",
+          "result": "ok",
+          "detail": "墨锭建档"
+        },
+        {
+          "at": "2026-09-03T05:10:42.321Z",
+          "actorId": "op-chen",
+          "actorName": "陈砚",
+          "role": "operator",
+          "action": "配样完成",
+          "from": "待配样",
+          "to": "排队试磨",
+          "result": "ok",
+          "detail": "配样完成，共 1 组试磨样本"
+        },
+        {
+          "at": "2026-09-05T05:10:42.321Z",
+          "actorId": "op-chen",
+          "actorName": "陈砚",
+          "role": "operator",
+          "action": "开始试磨",
+          "from": "排队试磨",
+          "to": "试磨中",
+          "result": "ok",
+          "detail": "试磨人：陈砚"
+        },
+        {
+          "at": "2026-09-10T05:10:42.321Z",
+          "actorId": "op-chen",
+          "actorName": "陈砚",
+          "role": "operator",
+          "action": "提交复评",
+          "from": "试磨中",
+          "to": "待复评",
+          "result": "ok",
+          "detail": "提交 1 组试磨结果，等待复评"
+        }
+      ]
+    },
+    {
+      "id": "T-0004",
+      "code": "IS-004",
+      "smokeSource": "黄山松烟",
+      "glueRatio": "7%",
+      "ageYears": 10,
+      "storage": "锦盒D",
+      "status": "已归档",
+      "createdBy": "op-li",
+      "createdAt": "2026-08-24T05:10:42.321Z",
+      "updatedAt": "2026-09-13T05:10:42.321Z",
+      "dueDate": "2026-09-07",
+      "grinderId": "op-li",
+      "reviewerId": "rev-zhao",
+      "archivedAt": "2026-09-09T05:10:42.321Z",
+      "cancelReason": null,
+      "groups": [
+        {
+          "id": "G-4",
+          "name": "A组",
+          "formula": "松烟+7%胶",
+          "paper": "棉料宣",
+          "temperature": 21,
+          "humidity": 58,
+          "sampleNo": "S-004-A",
+          "score": 90,
+          "notes": [
+            {
+              "at": "2026-09-07T05:10:42.321Z",
+              "by": "op-li",
+              "byName": "李研",
+              "stage": "试磨中",
+              "text": "磨感细腻，墨色乌亮"
+            }
+          ],
+          "createdAt": "2026-09-13T05:10:42.321Z",
+          "updatedAt": "2026-09-13T05:10:42.321Z"
+        }
+      ],
+      "timeline": [
+        {
+          "at": "2026-08-24T05:10:42.321Z",
+          "actorId": "op-li",
+          "actorName": "李研",
+          "role": "operator",
+          "action": "创建任务",
+          "from": null,
+          "to": "待配样",
+          "result": "ok",
+          "detail": "墨锭建档"
+        },
+        {
+          "at": "2026-08-29T05:10:42.321Z",
+          "actorId": "op-li",
+          "actorName": "李研",
+          "role": "operator",
+          "action": "配样完成",
+          "from": "待配样",
+          "to": "排队试磨",
+          "result": "ok",
+          "detail": "配样完成，共 1 组试磨样本"
+        },
+        {
+          "at": "2026-09-03T05:10:42.321Z",
+          "actorId": "op-li",
+          "actorName": "李研",
+          "role": "operator",
+          "action": "开始试磨",
+          "from": "排队试磨",
+          "to": "试磨中",
+          "result": "ok",
+          "detail": "试磨人：李研"
+        },
+        {
+          "at": "2026-09-07T05:10:42.321Z",
+          "actorId": "op-li",
+          "actorName": "李研",
+          "role": "operator",
+          "action": "提交复评",
+          "from": "试磨中",
+          "to": "待复评",
+          "result": "ok",
+          "detail": "提交 1 组试磨结果，等待复评"
+        },
+        {
+          "at": "2026-09-09T05:10:42.321Z",
+          "actorId": "rev-zhao",
+          "actorName": "赵鉴",
+          "role": "reviewer",
+          "action": "复评通过",
+          "from": "待复评",
+          "to": "已归档",
+          "result": "ok",
+          "detail": "复评通过，任务归档"
+        }
+      ]
+    },
+    {
+      "id": "T-0005",
+      "code": "IS-005",
+      "smokeSource": "油烟",
+      "glueRatio": "8.5%",
+      "ageYears": 2,
+      "storage": "试样盒C",
+      "status": "排队试磨",
+      "createdBy": "op-chen",
+      "createdAt": "2026-09-10T05:10:42.321Z",
+      "updatedAt": "2026-09-13T05:10:42.321Z",
+      "dueDate": "2026-09-18",
+      "grinderId": null,
+      "reviewerId": null,
+      "archivedAt": null,
+      "cancelReason": null,
+      "groups": [
+        {
+          "id": "G-5",
+          "name": "A组",
+          "formula": "",
+          "paper": "",
+          "temperature": null,
+          "humidity": null,
+          "sampleNo": "S-005-A",
+          "score": null,
+          "notes": [],
+          "createdAt": "2026-09-13T05:10:42.321Z",
+          "updatedAt": "2026-09-13T05:10:42.321Z"
+        }
+      ],
+      "timeline": [
+        {
+          "at": "2026-09-10T05:10:42.321Z",
+          "actorId": "op-chen",
+          "actorName": "陈砚",
+          "role": "operator",
+          "action": "创建任务",
+          "from": null,
+          "to": "待配样",
+          "result": "ok",
+          "detail": "墨锭建档"
+        },
+        {
+          "at": "2026-09-11T05:10:42.321Z",
+          "actorId": "op-chen",
+          "actorName": "陈砚",
+          "role": "operator",
+          "action": "配样完成",
+          "from": "待配样",
+          "to": "排队试磨",
+          "result": "ok",
+          "detail": "配样完成，共 1 组试磨样本"
         }
       ]
     }
-  ]
+  ],
+  "idempotency": {},
+  "counters": {
+    "task": 5,
+    "group": 5
+  }
 }

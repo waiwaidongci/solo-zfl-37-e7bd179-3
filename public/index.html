@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>墨锭试磨室 · 配方任务中心</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="seal">墨</div>
+      <div>
+        <h1>墨锭试磨室</h1>
+        <p>配方任务中心 · 待配样 → 排队试磨 → 试磨中 → 待复评 → 已归档</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <label class="who">
+        <span>当前身份</span>
+        <select id="userSelect" aria-label="当前身份"></select>
+      </label>
+      <button id="refreshBtn" class="btn ghost" type="button">刷新</button>
+      <button id="newTaskBtn" class="btn primary" type="button">＋ 新建任务</button>
+    </div>
+  </header>
+
+  <section id="alertBar" class="alerts hidden" aria-live="polite"></section>
+
+  <section id="statsRow" class="stats" aria-label="状态统计"></section>
+
+  <section class="filters">
+    <select id="statusFilter" aria-label="状态筛选">
+      <option value="">全部状态</option>
+    </select>
+    <input id="searchInput" type="search" placeholder="搜索编号 / 烟料 / 存放位置 / 人员">
+    <label class="check"><input type="checkbox" id="overdueOnly"> 仅看逾期</label>
+    <label class="check"><input type="checkbox" id="mineOnly"> 与我相关</label>
+  </section>
+
+  <main id="taskList" class="task-list" aria-live="polite"></main>
+
+  <div id="drawerMask" class="mask hidden"></div>
+  <aside id="drawer" class="drawer hidden" aria-label="任务详情"></aside>
+
+  <div id="modalMask" class="mask hidden"></div>
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true"></div>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
